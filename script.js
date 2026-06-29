@@ -115,8 +115,9 @@ const defaultCourses = [
     start: "13:00",
     end: "15:00",
     credit: 3,
-    difficulty: "중간",
+    difficulty: "3.0",
     team: "없음",
+    online: false,
     courseCode: "CS250",
     room: "AI융합관 301호",
     review: "최근 관심도가 높은 과목이며, 수학 기초가 있으면 따라가기 쉽다는 평가가 있습니다.",
@@ -336,6 +337,26 @@ function getCourses() {
 
 function saveCourses(courses) {
   setData("planpickCourses", courses);
+}
+
+function createCourseDraft(index = 0) {
+  return {
+    id: `custom-${Date.now()}-${index}`,
+    name: "새 강의",
+    type: "전공선택",
+    day: days[0],
+    start: "09:00",
+    end: "10:00",
+    credit: 3,
+    difficulty: "3.0",
+    team: "없음",
+    online: false,
+    courseCode: "",
+    room: "",
+    review: "",
+    syllabus: "",
+    color: "#2563eb"
+  };
 }
 
 function getRequestList() {
@@ -619,6 +640,140 @@ function renderPriorityList(containerId, priorities) {
   });
 }
 
+function normalizeKeywordText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .normalize("NFKC")
+    .replace(/[^\p{Letter}\p{Number}]+/gu, "");
+}
+
+function inferKeywords(text) {
+  const compact = normalizeKeywordText(text);
+  if (!compact) return [];
+
+  const rules = [
+    {
+      label: "졸업요건",
+      reason: "졸업, 필수 과목, 학점 충족과 관련된 표현",
+      keywords: ["졸업", "졸업요건", "졸업조건", "전공필수", "교양필수", "필수과목", "필수", "요건", "학점채우", "학점충족", "밀리면", "반드시"]
+    },
+    {
+      label: "공강",
+      reason: "공강, 쉬는 날, 특정 요일을 비우고 싶은 표현",
+      keywords: ["공강", "금공강", "월공강", "화공강", "수공강", "목공강", "쉬는날", "수업없는날", "하루비우", "비워", "비었", "몰아서"]
+    },
+    {
+      label: "오전 수업 회피",
+      reason: "오전, 아침, 1교시 수업 부담과 관련된 표현",
+      keywords: ["오전", "오전수업", "아침", "아침수업", "9시", "1교시", "일찍", "늦잠", "오후시작", "늦게시작"]
+    },
+    {
+      label: "학점 방어",
+      reason: "성적, 평점, 난이도, 과제 부담과 관련된 표현",
+      keywords: ["학점", "학점방어", "성적", "평점", "A+", "에이쁠", "꿀강", "쉬운", "쉽게", "널널", "난이도", "과제적", "시험적"]
+    },
+    {
+      label: "팀플 회피",
+      reason: "팀플, 조별과제, 발표 부담과 관련된 표현",
+      keywords: ["팀플", "팀프로젝트", "조별", "조별과제", "발표", "협업", "혼자", "개인과제"]
+    },
+    {
+      label: "전공 실력",
+      reason: "전공 역량, 취업, 프로젝트와 관련된 표현",
+      keywords: ["전공", "실력", "취업", "포트폴리오", "프로젝트", "개발", "코딩", "실무", "역량", "스펙", "깊게", "배우고"]
+    },
+    {
+      label: "온라인 선호",
+      reason: "온라인, 비대면, 녹화 강의와 관련된 표현",
+      keywords: ["온라인", "비대면", "녹화", "원격", "인터넷강의", "인강"]
+    }
+  ];
+
+  return rules
+    .map(rule => {
+      const matched = rule.keywords.filter(keyword => compact.includes(normalizeKeywordText(keyword)));
+      return {
+        label: rule.label,
+        score: matched.length,
+        matched: [...new Set(matched)],
+        reason: rule.reason
+      };
+    })
+    .filter(item => item.score > 0)
+    .sort((a, b) => b.score - a.score || a.label.localeCompare(b.label));
+}
+
+function inferPriorities(text) {
+  return inferKeywords(text);
+}
+
+function getRequestKeywords(request) {
+  return request?.keywords || request?.detectedKeywords || request?.inferredPriorities || [];
+}
+
+function renderKeywordList(containerId, keywords) {
+  const container = typeof containerId === "string" ? $(containerId) : containerId;
+  if (!container) return;
+  container.innerHTML = "";
+
+  if (!keywords || keywords.length === 0) {
+    container.textContent = "입력에서 인식된 키워드가 없습니다.";
+    return;
+  }
+
+  keywords.forEach((item) => {
+    const div = document.createElement("div");
+    div.className = "priority-item keyword-item";
+    div.title = item.reason || "";
+    const matched = Array.isArray(item.matched) && item.matched.length
+      ? `<em>${escapeHtml(item.matched.join(", "))}</em>`
+      : "";
+    div.innerHTML = `<span>#</span>${escapeHtml(item.label)}${matched}`;
+    container.appendChild(div);
+  });
+}
+
+function renderPriorityList(containerId, priorities) {
+  renderKeywordList(containerId, priorities);
+}
+
+function setCreditGoal(value) {
+  const input = $("creditInput");
+  const valueText = $("creditValueText");
+  if (!input) return;
+
+  const nextValue = Math.max(1, Number(value || 18));
+  input.value = `${nextValue}학점`;
+  if (valueText) valueText.textContent = `${nextValue}학점`;
+}
+
+function setupCreditSelector() {
+  const input = $("creditInput");
+  const rangeInput = $("creditRangeInput");
+  const overToggle = $("creditOverToggle");
+  const overPanel = $("creditOverPanel");
+  const overInput = $("creditOverInput");
+  if (!input || !rangeInput) return;
+
+  const sync = () => {
+    const isOver = Boolean(overToggle?.checked);
+    if (overPanel) overPanel.classList.toggle("hidden", !isOver);
+
+    if (isOver) {
+      const nextValue = Math.max(22, Number(overInput?.value || 22));
+      if (overInput) overInput.value = String(nextValue);
+      setCreditGoal(nextValue);
+      return;
+    }
+
+    setCreditGoal(rangeInput.value);
+  };
+
+  rangeInput.addEventListener("input", sync);
+  overToggle?.addEventListener("change", sync);
+  overInput?.addEventListener("input", sync);
+  sync();
+}
 
 $("saveStudentBtn")?.addEventListener("click", async () => {
   const student = {
@@ -653,14 +808,16 @@ $("submitRequestBtn")?.addEventListener("click", async () => {
     return;
   }
 
-  const inferredPriorities = inferPriorities(needText);
+  const keywords = inferKeywords(needText);
 
   const request = {
     id: Date.now(),
     createdAt: new Date().toLocaleString("ko-KR"),
     status: "대기중",
     needText,
-    inferredPriorities,
+    keywords,
+    detectedKeywords: keywords,
+    inferredPriorities: keywords,
     result: null,
     student
   };
@@ -690,7 +847,7 @@ async function renderWaiting() {
   $("waitingResultBtn").textContent = isComplete ? "완료된 결과 확인하기" : "결과 확인";
 
   if (request) {
-    renderPriorityList("waitingPriorityBox", request.inferredPriorities || []);
+    renderKeywordList("waitingPriorityBox", getRequestKeywords(request));
   }
 
   if (isComplete) {
@@ -704,6 +861,32 @@ function getCourseById(id) {
   return getCourses().find(course => course.id === id);
 }
 
+function isOnlineCourse(course) {
+  return course?.online === true || course?.online === "true";
+}
+
+function getCourseScheduleText(course) {
+  return isOnlineCourse(course)
+    ? "온라인 · 시간 지정 없음"
+    : `${course.day || "요일 미입력"} ${course.start || ""}~${course.end || ""}`;
+}
+
+function normalizeDifficultyRating(value) {
+  const text = String(value ?? "").trim();
+  const mapped = {
+    "높음": 4.5,
+    "중간": 3.0,
+    "낮음": 2.0
+  };
+  const numeric = mapped[text] ?? Number(text);
+  if (!Number.isFinite(numeric)) return 3.0;
+  return Math.min(5, Math.max(0, Math.round(numeric * 10) / 10));
+}
+
+function formatDifficultyRating(value) {
+  return normalizeDifficultyRating(value).toFixed(1);
+}
+
 function timeToHour(time) {
   return Number(String(time).split(":")[0]);
 }
@@ -714,6 +897,22 @@ function renderTimetable(containerId, courses) {
 
   const wrap = document.createElement("div");
   wrap.className = "timetable-wrap";
+
+  const onlineCourses = courses.filter(isOnlineCourse);
+  if (onlineCourses.length) {
+    const onlineBox = document.createElement("div");
+    onlineBox.className = "online-course-list";
+    onlineBox.innerHTML = `<strong>온라인 과목</strong><p>시간표 칸에는 넣지 않고 별도로 수강하면 되는 과목입니다.</p>`;
+    onlineCourses.forEach(course => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "online-course-item";
+      button.innerHTML = `<span>${escapeHtml(course.name)}</span><small>${Number(course.credit || 0)}학점 · ${escapeHtml(course.type || "구분 없음")}</small>`;
+      button.addEventListener("click", () => openCourseModal(course));
+      onlineBox.appendChild(button);
+    });
+    wrap.appendChild(onlineBox);
+  }
 
   const grid = document.createElement("div");
   grid.className = "timetable-grid";
@@ -751,7 +950,7 @@ function renderTimetable(containerId, courses) {
     });
   });
 
-  courses.forEach(course => {
+  courses.filter(course => !isOnlineCourse(course)).forEach(course => {
     const dayIndex = days.indexOf(course.day);
     const startHour = timeToHour(course.start);
     const endHour = timeToHour(course.end);
@@ -789,19 +988,107 @@ function renderCourseSummary(containerId, courses) {
   container.appendChild(total);
 
   courses.forEach(course => {
-    const pill = document.createElement("span");
-    pill.className = "course-pill";
-    pill.textContent = `${course.name} (${course.day} ${course.start})`;
+    const pill = document.createElement("button");
+    pill.type = "button";
+    pill.className = "course-pill course-pill-btn";
+    pill.title = "눌러서 강의 정보를 확인";
+    pill.textContent = `${course.name} (${getCourseScheduleText(course)})`;
+    pill.addEventListener("click", () => openCourseModal(course));
     container.appendChild(pill);
   });
+}
+
+function getRecommendedCourses(request) {
+  const plans = ["plan1", "plan2", "plan3"].map(key => request.result?.[key] || {});
+  const uniqueIds = [...new Set(plans.flatMap(plan => plan.courseIds || []))];
+  return uniqueIds.map(getCourseById).filter(Boolean);
+}
+
+function ensureCourseListModal() {
+  let modal = $("courseListModal");
+  if (modal) return modal;
+
+  modal = document.createElement("div");
+  modal.id = "courseListModal";
+  modal.className = "modal hidden";
+  modal.innerHTML = `
+    <div class="modal-backdrop" data-close-course-list></div>
+    <div class="modal-card">
+      <div class="modal-header">
+        <div>
+          <span class="tag">추천 과목</span>
+          <h3>추천 과목 전체 보기</h3>
+        </div>
+        <button class="ghost-btn" type="button" data-close-course-list>×</button>
+      </div>
+      <div id="courseListModalContent"></div>
+    </div>
+  `;
+  document.body.appendChild(modal);
+  modal.querySelectorAll("[data-close-course-list]").forEach(button => {
+    button.addEventListener("click", closeCourseListModal);
+  });
+  return modal;
+}
+
+function closeCourseListModal() {
+  $("courseListModal")?.classList.add("hidden");
+}
+
+function openRecommendedCoursesModal(courses) {
+  const modal = ensureCourseListModal();
+  const content = $("courseListModalContent");
+  const typeCounts = courses.reduce((map, course) => {
+    const type = course.type || "구분 없음";
+    map.set(type, (map.get(type) || 0) + 1);
+    return map;
+  }, new Map());
+
+  content.innerHTML = `
+    <div class="course-list-summary">
+      <div><strong>${courses.length}</strong><span>추천 과목</span></div>
+      <div><strong>${typeCounts.size}</strong><span>과목 종류</span></div>
+    </div>
+    <div class="type-count-list">
+      ${[...typeCounts].map(([type, count]) => `<span>${escapeHtml(type)} ${count}개</span>`).join("")}
+    </div>
+    <div class="modal-course-list"></div>
+  `;
+
+  const list = content.querySelector(".modal-course-list");
+  courses.forEach(course => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "modal-course-item";
+    button.innerHTML = `
+      <strong>${escapeHtml(course.name)}</strong>
+      <span>${escapeHtml(course.type || "구분 없음")} · ${escapeHtml(getCourseScheduleText(course))} · ${Number(course.credit || 0)}학점</span>
+    `;
+    button.addEventListener("click", () => {
+      closeCourseListModal();
+      openCourseModal(course);
+    });
+    list.appendChild(button);
+  });
+
+  modal.classList.remove("hidden");
 }
 
 function renderResultOverview(request) {
   const box = $("resultOverview");
   if (!box) return;
-  const plans = ["plan1", "plan2", "plan3"].map(key => request.result?.[key] || {});
-  const uniqueIds = new Set(plans.flatMap(plan => plan.courseIds || []));
-  box.innerHTML = `<div><strong>${uniqueIds.size}</strong><span>추천 과목</span></div><div><strong>3</strong><span>시간표 안</span></div><div><strong>Plan B</strong><span>대안 포함</span></div>`;
+  const courses = getRecommendedCourses(request);
+  const typeCount = new Set(courses.map(course => course.type || "구분 없음")).size;
+  box.innerHTML = `
+    <button class="overview-card overview-button" type="button" data-open-recommended-courses>
+      <strong>${courses.length}</strong><span>추천 과목</span><small>눌러서 전체 보기</small>
+    </button>
+    <div class="overview-card"><strong>${typeCount}</strong><span>과목 종류</span></div>
+    <div class="overview-card"><strong>Plan B</strong><span>대안 포함</span></div>
+  `;
+  box.querySelector("[data-open-recommended-courses]")?.addEventListener("click", () => {
+    openRecommendedCoursesModal(courses);
+  });
 }
 
 async function renderResult() {
@@ -821,7 +1108,7 @@ async function renderResult() {
     return;
   }
 
-  renderPriorityList("resultPriorityList", request.inferredPriorities || []);
+  renderKeywordList("resultPriorityList", getRequestKeywords(request));
 
   ["plan1", "plan2", "plan3"].forEach(planKey => {
     const plan = request.result[planKey] || {};
@@ -873,7 +1160,7 @@ async function renderAdminList() {
       '<div class="priority-list"></div>' +
       '<button class="primary-btn width-fit" type="button" data-open-request="' + escapeAttr(request.id) + '">요청 상세 보기</button>';
     list.appendChild(card);
-    renderPriorityList(card.querySelector(".priority-list"), request.inferredPriorities || []);
+    renderKeywordList(card.querySelector(".priority-list"), getRequestKeywords(request));
   });
 
   list.querySelectorAll("[data-open-request]").forEach(button => {
@@ -886,13 +1173,13 @@ async function renderAdminList() {
 
 function makePrompt(student, request) {
   const courses = getCourses();
-  const priorityText = (request.inferredPriorities || [])
-    .map((item, index) => `${index + 1}순위: ${item.label} (${item.reason})`)
+  const priorityText = getRequestKeywords(request)
+    .map((item) => `- ${item.label}${item.matched?.length ? `: ${item.matched.join(", ")}` : ""} (${item.reason})`)
     .join("\n");
 
   return `너는 대학생 수강 전략을 추천하는 AI야.
 
-아래 학생 정보와 사용자의 자유 입력, 그리고 앱이 유추한 우선순위를 바탕으로 시간표 3안을 추천해줘.
+아래 학생 정보와 사용자의 자유 입력, 그리고 앱이 감지한 키워드를 바탕으로 시간표 3안을 추천해줘.
 중요: 아래 샘플 과목 데이터에 있는 과목명만 사용해줘.
 
 학생 정보:
@@ -905,11 +1192,11 @@ function makePrompt(student, request) {
 사용자 자유 입력:
 ${request.needText}
 
-앱이 유추한 우선순위:
-${priorityText}
+반영된 키워드:
+${priorityText || "감지된 키워드 없음"}
 
 샘플 과목 데이터:
-${courses.map((course, index) => `${index + 1}. ${course.name} / ${course.type} / ${course.day} ${course.start}-${course.end} / ${course.credit}학점 / 강의실 ${course.room} / 강의코드 ${course.courseCode} / 난이도 ${course.difficulty} / 팀플 ${course.team}`).join("\n")}
+${courses.map((course, index) => `${index + 1}. ${course.name} / ${course.type} / ${getCourseScheduleText(course)} / ${course.credit}학점 / 강의실 ${course.room || "미입력"} / 강의코드 ${course.courseCode || "미입력"} / 난이도 ${formatDifficultyRating(course.difficulty)}/5 / 온라인 ${isOnlineCourse(course) ? "예" : "아니오"} / 팀플 ${course.team}`).join("\n")}
 
 결과 형식:
 1안: 졸업 안정형
@@ -949,7 +1236,7 @@ function renderCoursePickers() {
         <input type="checkbox" value="${course.id}" id="${id}" data-plan="${planKey}">
         <div>
           <strong>${course.name}</strong>
-          <span>${course.type} · ${course.day} ${course.start}~${course.end} · ${course.credit}학점 · ${course.room || "강의실 미입력"}</span>
+          <span>${course.type} · ${getCourseScheduleText(course)} · ${course.credit}학점 · 난이도 ${formatDifficultyRating(course.difficulty)}/5 · ${course.room || "강의실 미입력"}</span>
         </div>
       `;
       picker.appendChild(label);
@@ -984,7 +1271,7 @@ async function renderAdminDetail() {
     `${student.school} / ${student.major} / ${student.studentNumber}학번 / ${student.grade} / 목표 ${student.creditGoal || "미입력"}`;
 
   $("detailNeedText").textContent = request.needText;
-  renderPriorityList("detailPriorityText", request.inferredPriorities || []);
+  renderKeywordList("detailPriorityText", getRequestKeywords(request));
 
   $("promptText").textContent = makePrompt(student, request);
 
@@ -1077,13 +1364,18 @@ $("saveResultBtn")?.addEventListener("click", async () => {
 function renderCourseManager() {
   const courses = getCourses();
   const container = $("courseManager");
+  if (!container) return;
   container.innerHTML = "";
 
   courses.forEach((course, index) => {
+    const online = isOnlineCourse(course);
     const card = document.createElement("div");
     card.className = "course-edit-card";
     card.innerHTML = `
-      <h3>${index + 1}. ${course.name}</h3>
+      <div class="course-edit-header">
+        <h3>${index + 1}. ${escapeHtml(course.name || "새 강의")}</h3>
+        <button class="tiny-btn danger-light-btn" type="button" data-delete-course="${index}">삭제</button>
+      </div>
       <div class="course-edit-grid">
         <div>
           <label>과목명</label>
@@ -1098,18 +1390,25 @@ function renderCourseManager() {
           <input data-course-field="courseCode" data-course-index="${index}" value="${escapeAttr(course.courseCode || "")}">
         </div>
         <div>
+          <label>온라인 강의</label>
+          <label class="inline-check">
+            <input type="checkbox" data-course-field="online" data-course-index="${index}" ${online ? "checked" : ""}>
+            <span>온라인 과목</span>
+          </label>
+        </div>
+        <div>
           <label>요일</label>
-          <select data-course-field="day" data-course-index="${index}">
+          <select data-course-field="day" data-course-index="${index}" data-schedule-field="true" ${online ? "disabled" : ""}>
             ${days.map(day => `<option ${course.day === day ? "selected" : ""}>${day}</option>`).join("")}
           </select>
         </div>
         <div>
           <label>시작</label>
-          <input data-course-field="start" data-course-index="${index}" value="${escapeAttr(course.start)}">
+          <input data-course-field="start" data-course-index="${index}" data-schedule-field="true" value="${escapeAttr(course.start)}" ${online ? "disabled" : ""}>
         </div>
         <div>
           <label>종료</label>
-          <input data-course-field="end" data-course-index="${index}" value="${escapeAttr(course.end)}">
+          <input data-course-field="end" data-course-index="${index}" data-schedule-field="true" value="${escapeAttr(course.end)}" ${online ? "disabled" : ""}>
         </div>
         <div>
           <label>학점</label>
@@ -1124,8 +1423,8 @@ function renderCourseManager() {
           <input data-course-field="color" data-course-index="${index}" value="${escapeAttr(course.color || "#2563eb")}">
         </div>
         <div>
-          <label>난이도</label>
-          <input data-course-field="difficulty" data-course-index="${index}" value="${escapeAttr(course.difficulty || "")}">
+          <label>난이도 평점</label>
+          <input type="number" min="0" max="5" step="0.1" data-course-field="difficulty" data-course-index="${index}" value="${escapeAttr(formatDifficultyRating(course.difficulty))}">
         </div>
         <div>
           <label>팀플</label>
@@ -1156,15 +1455,57 @@ function escapeAttr(value) {
   return escapeHtml(value).replaceAll('"', "&quot;");
 }
 
-$("saveCoursesBtn")?.addEventListener("click", async () => {
-  const courses = getCourses();
+function collectCoursesFromManager() {
+  const courses = getCourses().map(course => ({ ...course }));
+
   document.querySelectorAll("[data-course-field]").forEach(input => {
     const index = Number(input.dataset.courseIndex);
     const field = input.dataset.courseField;
-    let value = input.value;
+    if (!courses[index]) return;
+
+    let value = input.type === "checkbox" ? input.checked : input.value;
     if (field === "credit") value = Number(value) || 0;
+    if (field === "difficulty") value = formatDifficultyRating(value);
     courses[index][field] = value;
   });
+
+  return courses;
+}
+
+$("addCourseBtn")?.addEventListener("click", () => {
+  const courses = collectCoursesFromManager();
+  courses.push(createCourseDraft(courses.length + 1));
+  saveCourses(courses);
+  renderCourseManager();
+});
+
+$("courseManager")?.addEventListener("click", (event) => {
+  const button = event.target.closest("[data-delete-course]");
+  if (!button) return;
+
+  const courses = collectCoursesFromManager();
+  if (courses.length <= 1) {
+    alert("강의는 최소 1개 이상 있어야 합니다.");
+    return;
+  }
+
+  const index = Number(button.dataset.deleteCourse);
+  const courseName = courses[index]?.name || "이 강의";
+  if (!confirm(`${courseName}을(를) 삭제할까요?`)) return;
+
+  courses.splice(index, 1);
+  saveCourses(courses);
+  renderCourseManager();
+});
+
+$("courseManager")?.addEventListener("change", (event) => {
+  if (event.target?.dataset?.courseField !== "online") return;
+  saveCourses(collectCoursesFromManager());
+  renderCourseManager();
+});
+
+$("saveCoursesBtn")?.addEventListener("click", async () => {
+  const courses = collectCoursesFromManager();
 
   await setDataAsync("planpickCourses", courses);
   alert("강의 정보가 저장되었습니다. 저장된 정보는 시간표와 강의 상세창에 반영됩니다.");
@@ -1216,6 +1557,7 @@ async function syncCloudDataAfterLoad() {
 }
 
 window.addEventListener("load", () => {
+  setupCreditSelector();
   getCourses();
   showPage(appMode === "admin" ? "adminPage" : "homePage", false);
   syncCloudDataAfterLoad();

@@ -87,15 +87,29 @@
                 <option>4학년</option>
               </select>
             </div>
-            <div>
+            <div class="wide">
               <label>이번 학기 목표 학점</label>
-              <select id="creditInput">
-                <option value="">목표 학점 선택</option>
-                <option>12학점 이하</option>
-                <option>15학점</option>
-                <option>18학점</option>
-                <option>21학점 이상</option>
-              </select>
+              <input id="creditInput" type="hidden" />
+              <div id="creditToggleGroup" class="credit-slider-card" aria-label="목표 학점 선택">
+                <div class="credit-slider-head">
+                  <strong id="creditValueText">18학점</strong>
+                  <span>1~21학점</span>
+                </div>
+                <input id="creditRangeInput" class="credit-range" type="range" min="1" max="21" step="1" value="18" />
+                <label class="toggle-switch-row">
+                  <input id="creditOverToggle" type="checkbox" />
+                  <span class="toggle-switch"></span>
+                  <span>22학점 이상</span>
+                </label>
+              </div>
+              <div id="creditOverPanel" class="credit-over-panel hidden">
+                <label for="creditOverInput">22학점 이상 세부 입력</label>
+                <div class="inline-input-row">
+                  <input id="creditOverInput" type="number" min="22" max="40" placeholder="예: 24" />
+                  <span>학점</span>
+                </div>
+                <p class="field-help">22학점 이상을 선택했다면 실제 목표 학점을 숫자로 입력해주세요.</p>
+              </div>
             </div>
           </div>
 
@@ -144,7 +158,7 @@
 
           <div id="resultContent" class="hidden">
             <div class="inferred-box">
-              <h3>AI가 유추한 사용자 우선순위</h3>
+              <h3>반영된 키워드</h3>
               <div id="resultPriorityList" class="priority-list"></div>
             </div>
             <div id="resultOverview" class="result-overview"></div>
