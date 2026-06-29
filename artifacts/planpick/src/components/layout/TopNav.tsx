@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { Bell, ChevronDown, User } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import logoImg from "@assets/image-Photoroom_1782734124454.png";
 
 const NAV_LINKS = [
   { label: "대시보드", href: "/" },
@@ -24,13 +25,12 @@ export function TopNav() {
     <div className="h-16 border-b border-border bg-white flex items-center justify-between px-6 sticky top-0 z-40">
       <div className="flex items-center">
         <Link href="/">
-          <span
-            className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent cursor-pointer"
+          <img
+            src={logoImg}
+            alt="PlanPick"
             data-testid="logo"
-            style={{ fontFamily: "PlanPickClip, PlanPickAggro, 'Noto Sans KR', sans-serif" }}
-          >
-            PlanPick
-          </span>
+            className="h-8 w-auto cursor-pointer object-contain"
+          />
         </Link>
       </div>
 
