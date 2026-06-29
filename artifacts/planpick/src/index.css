@@ -1,5 +1,37 @@
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&display=swap');
 @import "tailwindcss";
+
+@font-face {
+  font-family: "PlanPickPretendard";
+  src: url("/fonts/pretendard-bold.otf") format("opentype");
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PlanPickPretendard";
+  src: url("/fonts/pretendard-semibold.otf") format("opentype");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PlanPickAggro";
+  src: url("/fonts/aggro-bold.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "PlanPickClip";
+  src: url("/fonts/clip-bold.ttf") format("truetype");
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
 @import "tw-animate-css";
 @plugin "@tailwindcss/typography";
 

@@ -1,8 +1,10 @@
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Play } from "lucide-react";
+import { useLocation } from "wouter";
 
 export function HeroSection() {
+  const [, setLocation] = useLocation();
   return (
     <div className="flex flex-col justify-center h-full">
       <div className="mb-2">
@@ -23,7 +25,7 @@ export function HeroSection() {
       </p>
       
       <div className="flex items-center gap-3">
-        <Button className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-6 text-base font-medium rounded-xl shadow-md" data-testid="btn-get-recommendation">
+        <Button onClick={() => setLocation("/request")} className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-6 text-base font-medium rounded-xl shadow-md" data-testid="btn-get-recommendation">
           최적 시간표 추천받기 <ArrowRight className="ml-2 w-4 h-4" />
         </Button>
         <Button variant="outline" className="px-6 py-6 text-base font-medium rounded-xl border-slate-300 text-slate-700 hover:bg-slate-50" data-testid="btn-guide">
