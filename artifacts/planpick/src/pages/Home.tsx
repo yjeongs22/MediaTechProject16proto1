@@ -1,6 +1,5 @@
 import React from "react";
 import { HeroSection } from "@/components/home/HeroSection";
-import { StatsCards } from "@/components/home/StatsCards";
 import { TimetableCard } from "@/components/home/TimetableCard";
 import { AIPromoCard } from "@/components/home/AIPromoCard";
 import { LiveStatusCard } from "@/components/home/LiveStatusCard";
@@ -20,32 +19,9 @@ export default function Home() {
             <HeroSection />
           </div>
           
-          {/* Right: Floating Cards */}
-          <div className="lg:col-span-7 relative w-full pt-4">
-            {/* Desktop Layout - absolute positioning overlapping */}
-            <div className="hidden lg:block relative h-[420px] w-full">
-              {/* Center Main Timetable */}
-              <div className="absolute top-10 left-[10%] w-[55%] z-20">
-                <TimetableCard />
-              </div>
-              
-              {/* Top Right AI Card */}
-              <div className="absolute top-0 right-0 w-[38%] z-30">
-                <div className="transform rotate-2 hover:rotate-0 transition-transform duration-300">
-                  <StatsCards />
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile/Tablet Layout - regular grid */}
-            <div className="lg:hidden flex flex-col gap-6 w-full max-w-[600px] mx-auto">
-              <div className="w-full">
-                <TimetableCard />
-              </div>
-              <div className="w-full">
-                <StatsCards />
-              </div>
-            </div>
+          {/* Right: Timetable Image */}
+          <div className="lg:col-span-7 flex items-center justify-center">
+            <TimetableCard />
           </div>
         </div>
 
