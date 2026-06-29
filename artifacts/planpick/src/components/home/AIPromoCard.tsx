@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, BotMessageSquare } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import robotImg from "@assets/로봇_1782723959280.png";
 
 export function AIPromoCard() {
   return (
@@ -16,11 +17,9 @@ export function AIPromoCard() {
           </button>
         </div>
         
-        <div className="relative">
-          <div className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-lg transform rotate-3">
-            <BotMessageSquare className="w-10 h-10 text-indigo-600" />
-          </div>
-          <div className="absolute -top-4 -left-6 bg-white text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-2xl rounded-br-sm shadow-sm animate-bounce">
+        <div className="relative flex-shrink-0">
+          <img src={robotImg} alt="AI 로봇" className="w-32 h-32 object-contain drop-shadow-xl" />
+          <div className="absolute top-0 -left-6 bg-white text-indigo-600 text-xs font-bold px-3 py-1.5 rounded-2xl rounded-br-sm shadow-sm animate-bounce">
             ...
           </div>
         </div>
