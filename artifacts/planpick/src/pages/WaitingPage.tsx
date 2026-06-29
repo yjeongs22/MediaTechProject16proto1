@@ -1,6 +1,8 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import { useLocation } from "wouter";
-import { getRequestById, getCurrentRequestId, type PlanpickRequest } from "@/lib/storage";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { getCurrentRequestId, type PlanpickRequest } from "@/lib/storage";
 import { CheckCircle, Clock } from "lucide-react";
 
 export default function WaitingPage() {
@@ -8,22 +10,24 @@ export default function WaitingPage() {
   const [request, setRequest] = useState<PlanpickRequest | null>(null);
   const [complete, setComplete] = useState(false);
 
-  const poll = useCallback(async () => {
+  useEffect(() => {
     const id = getCurrentRequestId();
     if (!id) return;
-    const req = await getRequestById(id);
-    if (!req) return;
-    setRequest(req);
-    if (req.status === "complete") {
-      setComplete(true);
-    }
-  }, []);
 
-  useEffect(() => {
-    poll();
-    const timer = setInterval(poll, 3000);
-    return () => clearInterval(timer);
-  }, [poll]);
+    const ref = doc(db, "planpickMvp", "requests");
+    const unsub = onSnapshot(ref, (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data();
+      const items: PlanpickRequest[] = Array.isArray(data?.items) ? data.items : [];
+      const found = items.find((r) => r.id === id) ?? null;
+      setRequest(found);
+      if (found?.status === "complete") {
+        setComplete(true);
+      }
+    });
+
+    return () => unsub();
+  }, []);
 
   return (
     <div
