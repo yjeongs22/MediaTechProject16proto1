@@ -101,7 +101,7 @@ export interface PlanpickRequest {
   id: string;
   student: StudentInfo;
   needText: string;
-  status: "pending" | "complete";
+  status: "pending" | "complete" | "완료";
   createdAt: number;
   result?: PlanResult;
 }

@@ -221,7 +221,7 @@ export default function ResultPage() {
           )}
         </div>
 
-        {!request || request.status !== "complete" ? (
+        {!request || (request.status !== "complete" && request.status !== "완료") ? (
           <div className="bg-white rounded-2xl shadow-md p-8 text-center">
             <div className="text-4xl mb-4">📋</div>
             <h2 className="text-xl font-bold text-slate-700 mb-2">

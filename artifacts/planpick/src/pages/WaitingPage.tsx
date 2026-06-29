@@ -21,7 +21,7 @@ export default function WaitingPage() {
       const items: PlanpickRequest[] = Array.isArray(data?.items) ? data.items : [];
       const found = items.find((r) => r.id === id) ?? null;
       setRequest(found);
-      if (found?.status === "complete") {
+      if (found?.status === "complete" || found?.status === "완료") {
         setComplete(true);
       }
     });
