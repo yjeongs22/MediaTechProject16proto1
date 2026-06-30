@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowRight, Calendar } from "lucide-react";
+import { ArrowRight, Calendar, Bell, BellOff } from "lucide-react";
 
 export function LiveStatusCard() {
   const [timeLeft, setTimeLeft] = useState({ hours: 12, minutes: 34, seconds: 56 });
+  const [alarmOn, setAlarmOn] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -63,6 +64,22 @@ export function LiveStatusCard() {
             </div>
           </div>
         </div>
+
+        <button
+          onClick={() => setAlarmOn((v) => !v)}
+          className={`mt-4 w-full flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition-all border ${
+            alarmOn
+              ? "bg-indigo-600 text-white border-indigo-600 shadow-sm"
+              : "bg-white text-slate-600 border-slate-200 hover:border-indigo-400 hover:text-indigo-600"
+          }`}
+          data-testid="btn-alarm-toggle"
+        >
+          {alarmOn ? (
+            <><Bell className="w-4 h-4" /> 알람 설정됨</>
+          ) : (
+            <><BellOff className="w-4 h-4" /> 수강신청 시작 알람 받기</>
+          )}
+        </button>
       </CardContent>
     </Card>
   );

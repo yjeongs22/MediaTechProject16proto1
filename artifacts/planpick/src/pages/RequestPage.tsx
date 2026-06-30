@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useLocation } from "wouter";
 import { setData, setCurrentRequestId, type StudentInfo } from "@/lib/storage";
-import { ArrowRight, GraduationCap } from "lucide-react";
+import { ArrowRight, GraduationCap, Upload, X, ImagePlus } from "lucide-react";
 
 export default function RequestPage() {
   const [, setLocation] = useLocation();
@@ -13,6 +13,23 @@ export default function RequestPage() {
   const [overToggle, setOverToggle] = useState(false);
   const [overCredit, setOverCredit] = useState(22);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [timetableImage, setTimetableImage] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function handleImageFile(file: File) {
+    if (!file.type.startsWith("image/")) return;
+    const reader = new FileReader();
+    reader.onload = (e) => setTimetableImage(e.target?.result as string);
+    reader.readAsDataURL(file);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files[0];
+    if (file) handleImageFile(file);
+  }
 
   function validate() {
     const e: Record<string, string> = {};
@@ -152,6 +169,53 @@ export default function RequestPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          <div>
+            <label className="block text-sm font-bold text-slate-700 mb-1.5">
+              현재 수강 중인 시간표 이미지 <span className="text-slate-400 font-normal">(선택)</span>
+            </label>
+            <p className="text-xs text-slate-500 mb-3">이미 듣고 있는 수업 시간표를 업로드하면 AI가 해당 시간을 제외하고 추천해드려요.</p>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageFile(f); }}
+            />
+            {timetableImage ? (
+              <div className="relative rounded-xl overflow-hidden border border-indigo-200 bg-slate-50">
+                <img src={timetableImage} alt="업로드된 시간표" className="w-full max-h-56 object-contain" />
+                <button
+                  type="button"
+                  onClick={() => { setTimetableImage(null); if (fileInputRef.current) fileInputRef.current.value = ""; }}
+                  className="absolute top-2 right-2 w-7 h-7 rounded-full bg-white/90 shadow flex items-center justify-center text-slate-500 hover:text-red-500 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+                <div className="absolute bottom-2 left-2 bg-indigo-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full">
+                  ✓ 이미지 업로드 완료
+                </div>
+              </div>
+            ) : (
+              <div
+                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
+                className={`border-2 border-dashed rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                  isDragging
+                    ? "border-indigo-500 bg-indigo-50"
+                    : "border-slate-200 bg-slate-50 hover:border-indigo-400 hover:bg-indigo-50/50"
+                }`}
+              >
+                <div className="w-12 h-12 rounded-2xl bg-indigo-100 flex items-center justify-center mb-3">
+                  <ImagePlus className="w-6 h-6 text-indigo-500" />
+                </div>
+                <p className="text-sm font-semibold text-slate-600 mb-1">이미지를 드래그하거나 클릭하여 업로드</p>
+                <p className="text-xs text-slate-400">PNG, JPG, JPEG 지원</p>
+              </div>
+            )}
           </div>
 
           <button
